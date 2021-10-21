@@ -32,7 +32,6 @@ void main(){
 	else{
 		printf("I'm now a parent thread. "
                        "I'll wait for my child thread to die...\n");
-		global_var = PARENT_VAL;
 		pthread_join(ctid, (void*)&status);
 		printf("My child has invoked %d\n",*status);
 	}
@@ -41,7 +40,7 @@ void main(){
         res = fork();
         if(res == -1) exit(1);
         if(res == 0){
-            global_var = 3;
+            global_var = PCHILD_VAL;
             printf("Child Global var: %d\n", global_var);
             exit(0);
         }
