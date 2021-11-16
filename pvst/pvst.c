@@ -14,14 +14,13 @@ int global_var = INIT_VALUE;
 
 void* child_func(void *par){
   *((int*)par) = 1;
-  pthread_t ctid;
   sleep(5);
   global_var = TCHILD_VAL;
   printf("I'm the child and I wrote the global var!\n");
   pthread_exit(par);
 }
 
-void main(){
+int main(){
 	pthread_t ctid;
 	int res, *status;
 	printf("I'm a thread. "
@@ -31,7 +30,7 @@ void main(){
 	if(res != 0) printf("I cannot create a child");
 	else{
 		printf("I'm now a parent thread. "
-                       "I'll wait for my child thread to die...\n");
+                       "I'll wait for my child thread %lu to die...\n", ctid);
 		pthread_join(ctid, (void*)&status);
 		printf("My child has invoked %d\n",*status);
 	}
@@ -46,4 +45,5 @@ void main(){
         }
         wait(&res);
         printf("Parent Global var: %d\n", global_var);
+    return 0;
 }
