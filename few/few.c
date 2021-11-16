@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #include <sys/wait.h>
 
-void main(){
+int main(){
 	int res, status;
 	printf("I'm a process and I'm going to create a child\n");
 	res = fork();
