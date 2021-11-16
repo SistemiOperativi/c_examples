@@ -29,7 +29,7 @@ char shared[ARRAY_LEN_RAW];
 char pad0[64-sizeof(long)-2*sizeof(int)-sizeof(pthread_barrier_t)-ARRAY_LEN_RAW];
 
 /* TAS, TTAS, TICKET */
-int lock = 0;
+volatile int lock = 0;
 char pad1[60];
 
 /* SERVING TICKET */
@@ -64,7 +64,7 @@ void print_header(int num_locks){
 void print_throughput(long nops){
 	int len = 0;
 	char buf[MAX_TH_SIZE+1];
-	while(len++ <MAX_TH_SIZE) buf[len] = ' ';
+	while(len <MAX_TH_SIZE) buf[len++] = ' ';
 	buf[len] = '\0';
 	len = sprintf(buf, "%ld", ops);
 	printf("|");
