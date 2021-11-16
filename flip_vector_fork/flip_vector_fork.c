@@ -20,6 +20,7 @@
 #define PT_TTAS		2
 #define TICKET		3
 #define PT_MUTEX	4
+
 #define NUM_LOCKS   5
 
 #define MAX_TH_SIZE	12
@@ -27,26 +28,17 @@
 volatile int *stop;
 long *ops;
 pthread_barrier_t  *ptbarrier;
-volatile int *lock;
+volatile int *lock;             /* TAS, TTAS, TICKET */
+volatile int *now;              /* SERVING TICKET */
+pthread_spinlock_t ptspin_v;     /* PTHREAD SPINLOCK */
+pthread_mutex_t    ptmutex_v;    /* PTHREAD MUTEX */
 char *shared; //[ARRAY_LEN_RAW];
 
 
+pthread_spinlock_t *ptspin = &ptspin_v;     /* PTHREAD SPINLOCK */
+pthread_mutex_t    *ptmutex = &ptmutex_v;    /* PTHREAD MUTEX */
+
 int lock_type = 0;
-/* TAS, TTAS, TICKET */
-char pad1[60];
-
-/* SERVING TICKET */
-volatile int now = 0;
-char pad2[60];
-
-/* PTHREAD SPINLOCK */
-pthread_spinlock_t ptspin;
-char pad5[64-sizeof(pthread_spinlock_t)];
-
-/* PTHREAD MUTEX */
-pthread_mutex_t    ptmutex;
-char pad6[64-sizeof(pthread_mutex_t)];
-
 
 /* PRINT OUTPUT */
 void print_column_header(){
@@ -67,7 +59,7 @@ void print_header(int num_locks){
 void print_throughput(long nops){
 	int len = 0;
 	char buf[MAX_TH_SIZE+1];
-	while(len++ <MAX_TH_SIZE) buf[len] = ' ';
+	while(len <MAX_TH_SIZE) buf[len++] = ' ';
 	buf[len] = '\0';
 	len = sprintf(buf, "%ld", *ops);
 	printf("|");
@@ -86,32 +78,26 @@ void print_array(){
 
 /* LOCK OPERATIONS */
 void acquire(){
-//	if(lock_type == TAS)
-//		while(__sync_lock_test_and_set(lock,1));
-//	if(lock_type == TTAS)
-	{
+	if(lock_type == TAS)
+		while(__sync_lock_test_and_set(lock,1));
+	if(lock_type == TTAS)	{
 		while(__sync_lock_test_and_set(lock,1))
-			//while(lock)
-				;
+			while(*lock);
 	}
-//	if(lock_type == TICKET){
-//		int myticket = __sync_fetch_and_add(lock, 1);
-//		while(now != myticket);
-//	}
-//	if(lock_type == PT_TTAS) pthread_spin_lock(&ptspin);
-//	if(lock_type == PT_MUTEX)pthread_mutex_lock(&ptmutex);
+	if(lock_type == TICKET){
+		int myticket = __sync_fetch_and_add(lock, 1);
+		while(*now != myticket);
+	}
+	if(lock_type == PT_TTAS) pthread_spin_lock(ptspin);
+	if(lock_type == PT_MUTEX)pthread_mutex_lock(ptmutex);
 }
 
 void release(){
-	//if(lock_type == TAS || lock_type == TTAS)
-	{	
-		asm volatile ("":::"memory");	*lock = 0;
-	}
-//	if(lock_type == TICKET){					asm volatile ("":::"memory");	now = now+1;}
-//	if(lock_type == PT_TTAS) 					pthread_spin_unlock(&ptspin);
-//	if(lock_type == PT_MUTEX)					pthread_mutex_unlock(&ptmutex);
+    if(lock_type == TAS || lock_type == TTAS){	asm volatile ("":::"memory");	*lock = 0;}
+	if(lock_type == TICKET){					asm volatile ("":::"memory");	*now = *now+1;}
+	if(lock_type == PT_TTAS) 					pthread_spin_unlock(ptspin);
+	if(lock_type == PT_MUTEX)					pthread_mutex_unlock(ptmutex);
 }
-
 
 
 /* MINI BENCHMARK */
@@ -138,9 +124,15 @@ void* stress_test(void *arg){
 
 int main(int argc, char *argv[]){
 	pid_t 	   pids[MAX_THREADS];
+	if(argc != 2){
+		printf("No parameters.\nUse as the following: flip_vector <num_locks>\n");
+		exit(1);
+	}
 	int i,j;
-	int num_locks = NUM_LOCKS;
+	int num_locks = atoi(argv[1]);
+    
 	pthread_barrierattr_t pthread_barrierattr;
+    pthread_mutexattr_t   pthread_mutexattr;
 	int size = sizeof(int)+sizeof(long)+sizeof(pthread_barrier_t)+sizeof(int)+ARRAY_LEN_RAW;
 	shared = mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
 	
@@ -148,6 +140,9 @@ int main(int argc, char *argv[]){
 	ptbarrier 	= (pthread_barrier_t*)shared; 		shared += sizeof(pthread_barrier_t);
 	ops 		= (long*)shared;					shared += sizeof(long);
 	lock		= (int*)shared;						shared += sizeof(int);
+	now 		= (int*)shared;						shared += sizeof(int);
+	ptspin 		= (pthread_spinlock_t*)shared;		shared += sizeof(pthread_spinlock_t);
+	ptmutex		= (pthread_mutex_t*)shared;		    shared += sizeof(pthread_mutex_t);
 	
 	cpu_set_t my_set;        
 	CPU_ZERO(&my_set); 
@@ -155,19 +150,22 @@ int main(int argc, char *argv[]){
 		CPU_SET(i, &my_set);
 
 	sched_setaffinity(0, sizeof(cpu_set_t), &my_set);
-	pthread_spin_init(&ptspin,  PTHREAD_PROCESS_PRIVATE);
-	pthread_mutex_init(&ptmutex, NULL);
+	pthread_spin_init(ptspin,  PTHREAD_PROCESS_SHARED);
+    pthread_mutexattr_settype(&pthread_mutexattr, PTHREAD_MUTEX_DEFAULT);
+    pthread_mutexattr_setpshared(&pthread_mutexattr,  PTHREAD_PROCESS_SHARED);
+	pthread_mutex_init(ptmutex, &pthread_mutexattr);
 
-	//print_header(num_locks);
+	print_header(num_locks);
 
-	for(i=MAX_THREADS;i<=MAX_THREADS;i<<=1)
+	for(i=1;i<=MAX_THREADS;i<<=1)
 	{
-		printf("%d  %d", i, getpid());
-		for(lock_type=TTAS; lock_type<num_locks;lock_type++){
+		printf("%d  ", i);
+        fflush(stdout);
+		for(lock_type=0; lock_type<num_locks;lock_type++){
 			*ops = 0L;
 			*stop = 0;
 			*lock = 0;
-			now  = 0;
+			*now  = 0;
 			for(j=0;j<ARRAY_LEN;j++)  shared[j] = j+1;
 			shared[j] = '\0';
 
@@ -188,7 +186,6 @@ int main(int argc, char *argv[]){
 			for(j=0;j<i;j++)	waitpid(pids[j], &res,  0);	
 			pthread_barrier_destroy(ptbarrier);
 			print_throughput(*ops);
-			break;
 			
 		}
 		printf("\n");
