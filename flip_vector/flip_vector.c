@@ -10,7 +10,7 @@
 #define MAX_THREADS		(8)
 #define CORES			(4)
 #define SECONDS			2
-#define ARRAY_LEN		4
+#define ARRAY_LEN		10
 #define ARRAY_LEN_RAW	(ARRAY_LEN+1)
 
 #define TAS 		0
@@ -73,6 +73,14 @@ void print_throughput(long nops){
 	fflush(stdout);
 }
 
+
+void print_array(){
+	int i;
+	for(i = 0; i< ARRAY_LEN; i++)
+		printf("%d ", shared[i]);
+	printf("\n");
+		
+}
 
 /* LOCK OPERATIONS */
 void acquire(){
@@ -169,4 +177,5 @@ int main(int argc, char *argv[]){
 		}
 		printf("\n");
 	}
+	print_array();
 }
