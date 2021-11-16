@@ -8,7 +8,7 @@
 #include <sched.h>
 
 #define MAX_THREADS		(8)
-#define CORES			(1)
+#define CORES			(4)
 #define SECONDS			2
 #define ARRAY_LEN		4
 #define ARRAY_LEN_RAW	(ARRAY_LEN+1)
@@ -124,12 +124,16 @@ void* stress_test(void *arg){
 int main(int argc, char *argv[]){
 	pthread_t ptids[MAX_THREADS];
 	int i,j;
+	if(argc != 2){
+		printf("No parameters.\nUse as the following: flip_vector <num_locks>\n");
+		exit(1);
+	}
 	int num_locks = atoi(argv[1]);
 
-	cpu_set_t my_set;        
-	CPU_ZERO(&my_set);       
-	CPU_SET(0, &my_set);     
-	CPU_SET(1, &my_set);
+	cpu_set_t my_set;      
+	CPU_ZERO(&my_set); 
+	for(i=0;i<CORES;i++)
+		CPU_SET(i, &my_set);
 
 	sched_setaffinity(0, sizeof(cpu_set_t), &my_set);
 	pthread_spin_init(&ptspin,  PTHREAD_PROCESS_PRIVATE);
