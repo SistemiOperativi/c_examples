@@ -7,13 +7,12 @@
 
 void* child_func(void *par){
   *((int*)par) = 1;
-  pthread_t ctid;
   sleep(5);
   printf("I'm the child!\n");
   pthread_exit(par);
 }
 
-void main(){
+int main(){
 	pthread_t ctid;
 	int res, *status_ptr, status_val;
         status_ptr = &status_val;
@@ -23,9 +22,10 @@ void main(){
 	if(res != 0) printf("I cannot create a child");
 	else{
 		printf("I'm now a parent thread. "
-                       "I'll wait for my child thread to die...\n");
+                       "I'll wait for my child %lu thread to die...\n", ctid);
 		pthread_join(ctid, (void**)&status_ptr);
 		printf("My child has invoked %d\n", *status_ptr);
 	}
 	printf("My child is dead, so it's my time to die\n");
+    return 0;
 }
