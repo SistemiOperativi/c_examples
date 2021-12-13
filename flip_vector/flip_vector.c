@@ -7,10 +7,10 @@
 #include <string.h>
 #include <sched.h>
 
-#define MAX_THREADS		(8)
+#define MAX_THREADS		(32)
 #define CORES			(4)
 #define SECONDS			2
-#define ARRAY_LEN		10
+#define ARRAY_LEN		256
 #define ARRAY_LEN_RAW	(ARRAY_LEN+1)
 
 #define TAS 		0
@@ -25,8 +25,8 @@ volatile int stop = 0;
 int lock_type = 0;
 long ops = 0;
 pthread_barrier_t  ptbarrier;
-char shared[ARRAY_LEN_RAW];
-char pad0[64-sizeof(long)-2*sizeof(int)-sizeof(pthread_barrier_t)-ARRAY_LEN_RAW];
+unsigned char shared[ARRAY_LEN_RAW];
+char pad0[64-sizeof(long)-2*sizeof(int)-sizeof(pthread_barrier_t)-ARRAY_LEN_RAW%(64-sizeof(long)-2*sizeof(int)-sizeof(pthread_barrier_t))];
 
 /* TAS, TTAS, TICKET */
 volatile int lock = 0;
@@ -77,7 +77,7 @@ void print_throughput(long nops){
 void print_array(){
 	int i;
 	for(i = 0; i< ARRAY_LEN; i++)
-		printf("%d ", shared[i]);
+		printf("%u ", ((unsigned int)shared[i]));
 	printf("\n");
 		
 }
@@ -143,6 +143,9 @@ int main(int argc, char *argv[]){
 	for(i=0;i<CORES;i++)
 		CPU_SET(i, &my_set);
 
+	for(j=0;j<ARRAY_LEN;j++)  shared[j] = j;
+                        shared[j] = '\0';
+
 	sched_setaffinity(0, sizeof(cpu_set_t), &my_set);
 	pthread_spin_init(&ptspin,  PTHREAD_PROCESS_PRIVATE);
 	pthread_mutex_init(&ptmutex, NULL);
@@ -158,8 +161,8 @@ int main(int argc, char *argv[]){
 			stop = 0;
 			lock = 0;
 			now  = 0;
-			for(j=0;j<ARRAY_LEN;j++)  shared[j] = j+1;
-			shared[j] = '\0';
+			//for(j=0;j<ARRAY_LEN;j++)  shared[j] = j+1;
+			//shared[j] = '\0';
 
 			pthread_barrier_init(&ptbarrier, NULL, i);
 
