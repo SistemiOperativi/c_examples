@@ -1,56 +1,50 @@
 #include <stdio.h>
+/***************************************
+ * This might not work correctly. Why? *
+ ***************************************/
+
 #include <fcntl.h>
 #include <stdlib.h>
 #include <unistd.h>
 
-#define BUFSIZE 1024
+#define BUFSIZE 250
 
-int main(int argc, char *argv[]) { 
-	int sd, dd, size, result; 
-	char buffer[BUFSIZE];
+#define abort(msg) do{printf(msg);exit(1);}while(0)
 
-	 if (argc != 3) { /* check the number of arguments */ 
+int main(int argc, char *argv[]) {
+    int ifd, ofd, size_r, size_w, written = 0, end = 0; 
+    char buffer[BUFSIZE];
 
-		printf("usage: copy source target\n");
-		exit(1);
-	 }  
+    /* check parameters */
+    if (argc != 3) abort("usage: copy <source> <target>\n");
 
-	 /* read only opening of the source file */
-	 sd=open(argv[1],O_RDONLY);
-	 if (sd == -1) {  
-		printf("source file open error\n");
-	        exit(1);
-	 }  
+    /* open the input file and check errors */
+    ifd=open(argv[1],O_RDONLY);
+    if (ifd == -1) abort("input open error\n");
+    
+    /* opend output file and check errors */
+    ofd=open(argv[2],O_WRONLY|O_CREAT|O_TRUNC,0660); 
+    if (ofd == -1) abort("output creation error\n");
+    
+    while(!end){
+        /* read up to BUFSIZE from input file and check errors */
+        size_r=read(ifd,buffer,BUFSIZE);
+        if (size_r == -1) abort("read error\n"); 
 
-	 /* destination file creation */
-	 dd=open(argv[2],O_WRONLY|O_CREAT|O_TRUNC,0660); 
-	 if (dd == -1) {
-		printf("destination file creation error\n");
-	        exit(1);
-	 }
+        /* has EOF been reached? */
+        end = size_r == 0;
+        written = 0;
 
+        /* write BUFSIZE to destination file */ 
+        size_w = write(ofd,buffer,size_r);             
+        if (size_w == -1) abort("write error\n");
+        printf("written: %d\n", size_w);
+    } 
 
-	/* let's start with the copy operations */
-	do { 
-	      	 /* read up to BUFSIZE from source */
-          	size=read(sd,buffer,BUFSIZE);
-	        if (size == -1) {
-	          printf("source file read error\n"); 
-	          exit(1);          	
+    /* close file descriptors */
+    close(ifd);
+    close(ofd);
 
-		}	
-
-	 	/* write up to BUFSIZE to destination file */ 
-		result = write(dd,buffer,size);          	
-		if (result == -1) {
-             	 	printf("destination file write error\n");
-	        	exit(1);
-            		}
-	} while(size > 0);
-
-        close(sd);
-	close(dd);
-
-  }/* end main*/
+}
 
 
