@@ -1,9 +1,13 @@
-flip_vector_fork/flip_vector_fork
-flip_vector/flip_vector
-few/few
-minshell/minshell
-pfew/pfew
-pvst/pvst
+flip_vector_fork
+flip_vector
+few
+minshell
+pfew
+pvst
+cp
+dup
+
+!**/*.c
 
 # Prerequisites
 *.d
