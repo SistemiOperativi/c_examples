@@ -12,7 +12,7 @@
 #define abort(msg) do{printf(msg);exit(1);}while(0)
 
 int main(int argc, char *argv[]) {
-    int ifd, ofd, size_r, size_w, written = 0, end = 0; 
+    int ifd, ofd, size_r, size_w, end = 0; 
     char buffer[BUFSIZE];
 
     /* check parameters */
