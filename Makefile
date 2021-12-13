@@ -1,7 +1,7 @@
 SOURCES := $(wildcard */*.c)
 OBJECTS := $(patsubst %.c, %.o, $(SOURCES))
 TARGETS := $(patsubst %.o, %  , $(OBJECTS) )
-LDLIBS  := -lpthread
+LDLIBS  := -lpthread -lrt
 CFLAGS := -Wall -O3
 CC := gcc
 
