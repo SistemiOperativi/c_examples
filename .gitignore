@@ -6,6 +6,8 @@ pfew
 pvst
 cp
 dup
+prod
+cons
 
 !**/*.c
 
