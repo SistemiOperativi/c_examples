@@ -19,26 +19,7 @@ int main(int argc, char *argv[]){
     shared_data = mmap(NULL, SHARED_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
     log("shared_data cons address %p\n", shared_data);
     log("shared_data prod address %p\n", shared_data->prod_base_addr);
-    if(shared_data != shared_data->prod_base_addr){
-        log("try remapping shared_data from %p to %p\n", shared_data, shared_data->prod_base_addr);
-        old_ptr = desired = shared_data;
-        munmap(shared_data, SHARED_SIZE);
-        shared_data = mmap(desired, SHARED_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
-        if(shared_data != old_ptr)
-            log("remapped from %p to %p\n", old_ptr, shared_data);
-        else
-            log("remap failed\n");
-    }
     close(fd);  
-
-
-
-
-
-
-
-
-
 
     log("I'll JOIN for a process at %p\n", shared_data);
     shared_data->cons_pid = pid;

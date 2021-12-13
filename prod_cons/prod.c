@@ -14,7 +14,7 @@ int main(int argc, char *argv[]){
     pthread_barrierattr_t pthread_barrierattr;
     pthread_mutexattr_t   pthread_mutexattr;
 
-    int fd = shm_open(SHARED_NAME, O_CREAT | O_RDWR, 0666);
+    int fd = shm_open(SHARED_NAME, O_CREAT | O_EXCL | O_RDWR, 0666);
     
     ftruncate(fd, SHARED_SIZE); 
     shared_data = mmap(NULL, SHARED_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
