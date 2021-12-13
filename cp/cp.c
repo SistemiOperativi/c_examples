@@ -1,8 +1,8 @@
-#include <stdio.h>
 /***************************************
  * This might not work correctly. Why? *
  ***************************************/
 
+#include <stdio.h>
 #include <fcntl.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -33,7 +33,6 @@ int main(int argc, char *argv[]) {
 
         /* has EOF been reached? */
         end = size_r == 0;
-        written = 0;
 
         /* write BUFSIZE to destination file */ 
         size_w = write(ofd,buffer,size_r);             
@@ -44,7 +43,6 @@ int main(int argc, char *argv[]) {
     /* close file descriptors */
     close(ifd);
     close(ofd);
-
 }
 
 
