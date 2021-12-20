@@ -3,6 +3,7 @@
 #include <fcntl.h>           /* For O_* constants */
 #include <unistd.h>          /* For truncate */
 #include <stdio.h>           /* For printf */
+#include <stdlib.h>          /* For exit */
 
 #include "prod_cons.h"
 
@@ -10,14 +11,29 @@
 
 int main(int argc, char *argv[]){
     shared_data_t *shared_data;    
-    pid_t pid = getpid();
     pthread_barrierattr_t pthread_barrierattr;
     pthread_mutexattr_t   pthread_mutexattr;
+    int res;
+    pid_t pid = getpid();
 
     int fd = shm_open(SHARED_NAME, O_CREAT | O_EXCL | O_RDWR, 0666);
+    if(fd == -1) {
+        log("The shared memory already exists...Probably there is another producer...exit\n");
+        goto fail_exit;
+    }
     
-    ftruncate(fd, SHARED_SIZE); 
+    res = ftruncate(fd, SHARED_SIZE); 
+    if(res == -1) {
+        log("I cannot allocate enough memory...exit\n");
+        goto abort;
+    }
+    
     shared_data = mmap(NULL, SHARED_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+    if(shared_data == MAP_FAILED) {
+        log("I cannot map memory...exit\n");
+        goto abort;
+    }
+
     close(fd);
 
     pthread_barrierattr_setpshared(&pthread_barrierattr, PTHREAD_PROCESS_SHARED );
@@ -41,6 +57,14 @@ int main(int argc, char *argv[]){
     log("Done\n");
 
     pthread_mutex_unlock(&shared_data->mutex);
+
+    exit(0);
+
+abort:
+    shm_unlink(SHARED_NAME);
+    close(fd);
+fail_exit:
+    exit(1);
 
 
 }

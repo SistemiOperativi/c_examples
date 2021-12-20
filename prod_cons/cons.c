@@ -10,13 +10,20 @@
 
 
 int main(int argc, char *argv[]){
-    shared_data_t *shared_data, *desired, *old_ptr;
+    shared_data_t *shared_data;
     pid_t pid = getpid();
 
 
     int fd = shm_open(SHARED_NAME, O_RDWR, 0666);
     if(fd == -1) {log("shared mem not initialized\n");exit(1);}
     shared_data = mmap(NULL, SHARED_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+
+    if(shared_data == MAP_FAILED) {
+        log("I cannot map memory...exit\n");
+        close(fd);
+        exit(1);
+    }
+
     log("shared_data cons address %p\n", shared_data);
     log("shared_data prod address %p\n", shared_data->prod_base_addr);
     close(fd);  
