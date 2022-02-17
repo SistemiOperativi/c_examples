@@ -110,6 +110,7 @@ int main(int argc, char *argv[]) {
   char *in_file_path  = argv[1];       // parameter A
   char *out_file_path = argv[2];       // parameter B
   int num_threads     = atoi(argv[3]); // parameter N
+  if(num_threads < 1) num_threads = 1;
 
   // open input and output files
   int input_fd        = open(in_file_path, O_RDONLY);                               
