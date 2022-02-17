@@ -65,9 +65,9 @@ void* thread_func(void* param){
 
 void parallel_invert(int thread_count){
   // recompute the effective thread count
-  // each thread should be able to swap at least two items
+  // each thread should be able to swap at least one item
   // so the maximum number of threads if bounded by the file_lenght 
-  int maximum_thread_count = file_lenght << 1; // What does this line? 
+  int maximum_thread_count = file_lenght; 
 
   // compute the minimum between thread_count and maximum_thread_count and store it in effective_thread_count (a global variable)
   effective_thread_count = thread_count^( (thread_count^maximum_thread_count) & (-(thread_count>maximum_thread_count)) );
